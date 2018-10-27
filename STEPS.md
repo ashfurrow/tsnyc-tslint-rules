@@ -218,3 +218,102 @@ ERROR: src/index.ts[5, 1]: Found a bad word in the following comment: `// TODO: 
 error Command failed with exit code 2.
 info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
 ```
+
+## Let's write a rule that uses the TypeScript AST (`step-5`)
+
+TypeScript's AST is really cool and its easy to make TSLint rules that rely on it. See [the original repo](https://github.com/ashfurrow/tslint-playground) for more further reading on the AST.
+
+Let's add our new rule to the TSLint config:
+
+```diff
+diff --git a/tslint.json b/tslint.json
+index 2beccfd..9f601a1 100755
+--- a/tslint.json
++++ b/tslint.json
+@@ -17,6 +17,7 @@
+       "check-accessor",
+       "check-constructor"
+     ],
++    "de-morgans": true,
+     "no-bad-words": [true, "TODO"],
+     // Disabled till there’s an auto-fixer for this.
+     // https://github.com/palantir/tslint/blob/master/src/rules/objectLiteralSortKeysRule.ts
+```
+
+And create the new rule:
+
+```sh
+touch tslint/deMorgansRule.ts
+```
+
+And its implementation:
+
+```ts
+import * as Lint from "tslint"
+import * as utils from "tsutils"
+import * as ts from "typescript"
+
+export class Rule extends Lint.Rules.AbstractRule {
+  apply(sourceFile: ts.SourceFile): Lint.RuleFailure[] {
+    return this.applyWithWalker(new DeMorgansWalker(sourceFile, this.getOptions()))
+  }
+}
+
+class DeMorgansWalker extends Lint.RuleWalker {
+  public visitBinaryExpression(node: ts.BinaryExpression) {
+    if (this.isNegatedBooleanExpression(node.left) && this.isNegatedBooleanExpression(node.right)) {
+      switch (node.operatorToken.kind) {
+        case ts.SyntaxKind.AmpersandAmpersandToken:
+          this.addFailureAtNode(node, "detected (!a && !b)")
+          break
+        case ts.SyntaxKind.BarBarToken:
+          this.addFailureAtNode(node, "detected (!a || !b)")
+          break
+      }
+    }
+
+    super.visitBinaryExpression(node)
+  }
+
+  isNegatedBooleanExpression(node: ts.Node) {
+    if (utils.isPrefixUnaryExpression(node)) {
+      return node.operator === ts.SyntaxKind.ExclamationToken
+    }
+  }
+}
+```
+
+And let's try it out by adding a failure to our `src/index.ts`:
+
+```diff
+diff --git a/src/index.ts b/src/index.ts
+index 6b1e808..b2fb60f 100755
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -4,3 +4,10 @@ export default function hello() {
+ 
+ let a = 123
+ a = 456
++
++const x = true
++const y = false
++
++if (!x && !y) {
++  a = 789
++}
+```
+
+Okay and let's verify it works:
+
+```sh
+yarn lint
+yarn run v1.10.1
+$ node -r ts-node/register node_modules/.bin/tslint 'src/**/*.{ts,tsx}'
+
+ERROR: src/index.ts[11, 5]: detected (!a && !b)
+
+error Command failed with exit code 2.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+```
+
+Okay, sweet!
