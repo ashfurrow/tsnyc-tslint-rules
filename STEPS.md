@@ -30,6 +30,8 @@ index 5eb6e8b..77a0324 100755
    "jest": {
 ```
 
+Next we'll create a directory for our custom rules and create the first file for our custom rules. TSLint requires you to adhere to [its filename conventions](https://palantir.github.io/tslint/develop/custom-rules/).
+
 ```sh
 mkdir tslint
 touch tslint/noBadWordsRule.ts
