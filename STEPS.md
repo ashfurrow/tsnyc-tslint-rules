@@ -223,7 +223,19 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
 
 TypeScript's AST is really cool and its easy to make TSLint rules that rely on it. See [the original repo](https://github.com/ashfurrow/tslint-playground) for more further reading on the AST.
 
-Let's add our new rule to the TSLint config:
+We're going to write a new rule based on [DeMorgan's Law](https://en.wikipedia.org/wiki/De_Morgan%27s_laws), a logical principle that states the following two pieces of code behave identically.
+
+```
+if (!a && !b) { ... }
+if (!(a || b)) { ... }
+
+// Or, also:
+
+if (!a || !b) { ... }
+if (!(a && b)) { ... }
+```
+
+We'll write a rule to **minimize the number of exclamation points** in our code. Let's add our new rule to the TSLint config:
 
 ```diff
 diff --git a/tslint.json b/tslint.json
@@ -317,3 +329,114 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
 ```
 
 Okay, sweet!
+
+## Adding fix-it (`step-6`)
+
+Let's add a fix-it so our DeMorgan's Rule can fix our code for us.
+
+```diff
+diff --git a/tslint/deMorgansRule.ts b/tslint/deMorgansRule.ts
+index b107d17..2eebcee 100644
+--- a/tslint/deMorgansRule.ts
++++ b/tslint/deMorgansRule.ts
+@@ -13,10 +13,10 @@ class DeMorgansWalker extends Lint.RuleWalker {
+     if (this.isNegatedBooleanExpression(node.left) && this.isNegatedBooleanExpression(node.right)) {
+       switch (node.operatorToken.kind) {
+         case ts.SyntaxKind.AmpersandAmpersandToken:
+-          this.addFailureAtNode(node, "detected (!a && !b)")
++          this.addFailureAtNode(node, "detected (!a && !b)", this.deMorganifyIfStatement(node, "||"))
+           break
+         case ts.SyntaxKind.BarBarToken:
+-          this.addFailureAtNode(node, "detected (!a || !b)")
++          this.addFailureAtNode(node, "detected (!a || !b)", this.deMorganifyIfStatement(node, "&&"))
+           break
+       }
+     }
+@@ -24,6 +24,13 @@ class DeMorgansWalker extends Lint.RuleWalker {
+     super.visitBinaryExpression(node)
+   }
+ 
++  deMorganifyIfStatement(expression: ts.BinaryExpression, middle: string): Lint.Replacement {
++    const left = expression.left as ts.PrefixUnaryExpression
++    const right = expression.right as ts.PrefixUnaryExpression
++    const newIfExpression = `!(${left.getChildAt(1).getFullText()} ${middle} ${right.getChildAt(1).getFullText()})`
++    return Lint.Replacement.replaceFromTo(expression.getStart(), expression.getEnd(), newIfExpression)
++  }
++
+   isNegatedBooleanExpression(node: ts.Node) {
+     if (utils.isPrefixUnaryExpression(node)) {
+       return node.operator === ts.SyntaxKind.ExclamationToken
+```
+
+You can see that we add a `Lint.Replacement` to the end of `this.addFailureAtNode()` which is how we tell TSLint how to fix our code (if the user passes in the `--fix` flag).
+
+And the full implementation:
+
+```ts
+import * as Lint from "tslint"
+import * as utils from "tsutils"
+import * as ts from "typescript"
+
+export class Rule extends Lint.Rules.AbstractRule {
+  apply(sourceFile: ts.SourceFile): Lint.RuleFailure[] {
+    return this.applyWithWalker(new DeMorgansWalker(sourceFile, this.getOptions()))
+  }
+}
+
+class DeMorgansWalker extends Lint.RuleWalker {
+  public visitBinaryExpression(node: ts.BinaryExpression) {
+    if (this.isNegatedBooleanExpression(node.left) && this.isNegatedBooleanExpression(node.right)) {
+      switch (node.operatorToken.kind) {
+        case ts.SyntaxKind.AmpersandAmpersandToken:
+          this.addFailureAtNode(node, "detected (!a && !b)", this.deMorganifyIfStatement(node, "||"))
+          break
+        case ts.SyntaxKind.BarBarToken:
+          this.addFailureAtNode(node, "detected (!a || !b)", this.deMorganifyIfStatement(node, "&&"))
+          break
+      }
+    }
+
+    super.visitBinaryExpression(node)
+  }
+
+  deMorganifyIfStatement(expression: ts.BinaryExpression, middle: string): Lint.Replacement {
+    const left = expression.left as ts.PrefixUnaryExpression
+    const right = expression.right as ts.PrefixUnaryExpression
+    const newIfExpression = `!(${left.getChildAt(1).getFullText()} ${middle} ${right.getChildAt(1).getFullText()})`
+    return Lint.Replacement.replaceFromTo(expression.getStart(), expression.getEnd(), newIfExpression)
+  }
+
+  isNegatedBooleanExpression(node: ts.Node) {
+    if (utils.isPrefixUnaryExpression(node)) {
+      return node.operator === ts.SyntaxKind.ExclamationToken
+    }
+  }
+}
+```
+
+And finally, verify it works:
+
+```sh
+yarn lint --fix
+yarn run v1.10.1
+$ node -r ts-node/register node_modules/.bin/tslint 'src/**/*.{ts,tsx}' --fix
+Fixed 1 error(s) in src/index.ts
+
+
+✨  Done in 1.57s.
+git diff src/index.ts
+diff --git a/src/index.ts b/src/index.ts
+index b2fb60f..0afe98c 100755
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -8,6 +8,6 @@ a = 456
+ const x = true
+ const y = false
+ 
+-if (!x && !y) {
++if (!(x || y)) {
+   a = 789
+ }
+```
+
+Nice, it works! Commit everything.
