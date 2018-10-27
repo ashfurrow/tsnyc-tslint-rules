@@ -4,3 +4,10 @@ export default function hello() {
 
 let a = 123
 a = 456
+
+const x = true
+const y = false
+
+if (!x && !y) {
+  a = 789
+}
