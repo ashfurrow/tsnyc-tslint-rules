@@ -2,7 +2,7 @@
 
 These are steps for my [meetup talk](https://www.meetup.com/TypeScriptNYC/events/255170060/). Code in this repo after each step is committed at a tag listed beside the step (see [tags](https://github.com/ashfurrow/tsnyc-tslint-rules/tags)).
 
-## Create Project (`step-1`)
+## Create Project ([`step-1`](https://github.com/ashfurrow/tsnyc-tslint-rules/tree/step-1))
 
 ```sh
 yo artsy
@@ -10,7 +10,7 @@ yo artsy
 
 And follow the prompts.
 
-## Create basic rule (`step-2`)
+## Create basic rule ([`step-2`](https://github.com/ashfurrow/tsnyc-tslint-rules/tree/step-2))
 
 Update `lint` script to use `ts-node`:
 
@@ -50,7 +50,7 @@ export class Rule extends Lint.Rules.AbstractRule {
 
 Test it out:
 
-## Add dependencies, write rule (`step-3`)
+## Add dependencies, write rule ([`step-3`](https://github.com/ashfurrow/tsnyc-tslint-rules/tree/step-3))
 
 Add the [`bad-words`](https://github.com/web-mech/badwords) node module:
 
@@ -155,7 +155,7 @@ let a = 123
 a = 456
 ```
 
-## Add configuration to rule (`step-4`)
+## Add configuration to rule ([`step-4`](https://github.com/ashfurrow/tsnyc-tslint-rules/tree/step-4))
 
 We should make our rule configurable so people can add their own custom bad words. Let's pass in configuration from `tslint.json`:
 
@@ -219,7 +219,7 @@ error Command failed with exit code 2.
 info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
 ```
 
-## Let's write a rule that uses the TypeScript AST (`step-5`)
+## Let's write a rule that uses the TypeScript AST ([`step-5`](https://github.com/ashfurrow/tsnyc-tslint-rules/tree/step-5))
 
 TypeScript's AST is really cool and its easy to make TSLint rules that rely on it. See [the original repo](https://github.com/ashfurrow/tslint-playground) for more further reading on the AST.
 
@@ -330,7 +330,7 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
 
 Okay, sweet!
 
-## Adding fix-it (`step-6`)
+## Adding fix-it ([`step-6`](https://github.com/ashfurrow/tsnyc-tslint-rules/tree/step-6))
 
 Let's add a fix-it so our DeMorgan's Rule can fix our code for us.
 
