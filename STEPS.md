@@ -32,9 +32,32 @@ index 5eb6e8b..77a0324 100755
 
 ```sh
 mkdir tslint
-# Add "rulesDirectory": ["./tslint"] to tslint.json
 touch tslint/noBadWordsRule.ts
-# Add "no-bad-words": true, to tslint.json
+```
+
+And update the `tslint.json` config for TSLint to use the new rule, in the new directory:
+
+```diff
+diff --git a/tslint.json b/tslint.json
+index b946fbc..a28eb9f 100755
+--- a/tslint.json
++++ b/tslint.json
+@@ -17,6 +17,7 @@
+       "check-accessor",
+       "check-constructor"
+     ],
++    "no-bad-words": true,
+     // Disabled till there’s an auto-fixer for this.
+     // https://github.com/palantir/tslint/blob/master/src/rules/objectLiteralSortKeysRule.ts
+     "object-literal-sort-keys": false,
+@@ -31,5 +32,6 @@
+       true,
+       { "multiline": "always", "singleline": "never" }
+     ]
+-  }
++  },
++  "rulesDirectory": ["./tslint"]
+ }
 ```
 
 ```ts
