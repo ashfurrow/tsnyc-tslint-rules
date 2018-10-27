@@ -8,6 +8,6 @@ a = 456
 const x = true
 const y = false
 
-if (!x && !y) {
+if (!(x || y)) {
   a = 789
 }

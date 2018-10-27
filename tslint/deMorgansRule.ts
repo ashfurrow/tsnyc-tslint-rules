@@ -13,15 +13,22 @@ class DeMorgansWalker extends Lint.RuleWalker {
     if (this.isNegatedBooleanExpression(node.left) && this.isNegatedBooleanExpression(node.right)) {
       switch (node.operatorToken.kind) {
         case ts.SyntaxKind.AmpersandAmpersandToken:
-          this.addFailureAtNode(node, "detected (!a && !b)")
+          this.addFailureAtNode(node, "detected (!a && !b)", this.deMorganifyIfStatement(node, "||"))
           break
         case ts.SyntaxKind.BarBarToken:
-          this.addFailureAtNode(node, "detected (!a || !b)")
+          this.addFailureAtNode(node, "detected (!a || !b)", this.deMorganifyIfStatement(node, "&&"))
           break
       }
     }
 
     super.visitBinaryExpression(node)
+  }
+
+  deMorganifyIfStatement(expression: ts.BinaryExpression, middle: string): Lint.Replacement {
+    const left = expression.left as ts.PrefixUnaryExpression
+    const right = expression.right as ts.PrefixUnaryExpression
+    const newIfExpression = `!(${left.getChildAt(1).getFullText()} ${middle} ${right.getChildAt(1).getFullText()})`
+    return Lint.Replacement.replaceFromTo(expression.getStart(), expression.getEnd(), newIfExpression)
   }
 
   isNegatedBooleanExpression(node: ts.Node) {
