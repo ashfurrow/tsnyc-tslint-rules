@@ -212,7 +212,7 @@ index 36de09f..76db1d8 100644
  import * as ts from "typescript"
  
 +interface Options {
-+  filter: any
++  filter: any // The bad-words module has no types on DefinitelyTyped, so we need to use any.
 +}
 +
  export class Rule extends Lint.Rules.AbstractRule {
